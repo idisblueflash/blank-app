@@ -16,6 +16,25 @@ def parse_fraction(s):
     except:
         return None
 
+
+def render_number_line(candidate_values, candidates, target_value, target, x_min, x_max, title):
+    """Render a number line visualization between x_min and x_max."""
+    fig, ax = plt.subplots(figsize=(8, 2))
+    ax.hlines(0, x_min, x_max)
+
+    ax.scatter(candidate_values, [0] * len(candidate_values))
+    for val, frac in zip(candidate_values, candidates):
+        ax.text(val, 0.02, str(frac), ha='center', rotation=45)
+
+    ax.scatter([target_value], [0], color='red', s=80)
+    ax.text(target_value, -0.03, str(target) + " (target)", color='red', ha='center', rotation=45)
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_yticks([])
+    ax.set_xlabel("Number Line")
+    ax.set_title(title)
+    return fig
+
 target = parse_fraction(target_input)
 candidates = [parse_fraction(x) for x in candidate_input.split(",")]
 candidates = [c for c in candidates if c is not None]
@@ -35,35 +54,43 @@ else:
         closest_idx = distances.index(min(distances))
         closest_label = str(candidates[closest_idx])
 
-        # === Plot ===
-        fig, ax = plt.subplots(figsize=(8, 2))
-
-        # Plot number line
-        min_val = min(candidate_values + [target_value]) - 0.05
-        max_val = max(candidate_values + [target_value]) + 0.05
-        ax.hlines(0, min_val, max_val)
-
-        # Plot candidates
-        ax.scatter(candidate_values, [0]*len(candidate_values))
-        for val, frac in zip(candidate_values, candidates):
-            ax.text(val, 0.02, str(frac), ha='center', rotation=45)
-
-        # Plot target (in red)
-        ax.scatter([target_value], [0], color='red', s=80)
-        ax.text(target_value, -0.03, str(target) + " (target)", color='red', ha='center', rotation=45)
-
-        ax.set_yticks([])
-        ax.set_xlabel("Number Line")
-
-        st.pyplot(fig)
-
         # === Report Closest ===
         st.markdown(f"### ✅ Closest estimate: **{closest_label}**")
         st.write(f"Distance: `{distances[closest_idx]:.6f}`")
 
-        # Show sorted comparison (optional helpful table)
-        data = sorted(
-            zip(candidates, candidate_values, distances),
-            key=lambda x: x[2]
+
+        # === Plot ===
+        padding = 0.05
+        min_val = min(candidate_values + [target_value]) - padding
+        max_val = max(candidate_values + [target_value]) + padding
+
+        default_fixed_width = 1.0
+        data_span = max_val - min_val
+        view_width = max(default_fixed_width, data_span)
+        center = (min_val + max_val) / 2
+        fixed_min = center - view_width / 2
+        fixed_max = center + view_width / 2
+
+        fixed_fig = render_number_line(
+            candidate_values,
+            candidates,
+            target_value,
+            target,
+            fixed_min,
+            fixed_max,
+            "Fixed-width view",
         )
-        st.write("Detailed comparison:", data)
+        st.pyplot(fixed_fig)
+
+        dynamic_fig = render_number_line(
+            candidate_values,
+            candidates,
+            target_value,
+            target,
+            min_val,
+            max_val,
+            "Auto-fit view",
+        )
+        st.pyplot(dynamic_fig)
+
+     
